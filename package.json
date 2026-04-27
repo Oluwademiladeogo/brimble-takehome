@@ -1,0 +1,11 @@
+{
+  "name": "brimble-takehome",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev:api": "pnpm --filter @brimble/api dev",
+    "dev:web": "pnpm --filter @brimble/web dev",
+    "build": "pnpm -r build",
+    "test": "pnpm --filter @brimble/api test"
+  }
+}

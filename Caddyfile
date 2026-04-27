@@ -1,0 +1,29 @@
+{
+	# Admin API is used by the api container to add/remove routes at runtime.
+	# We bind it to 0.0.0.0 *inside* the brimble-net network so the api can
+	# reach it by DNS name `caddy:2019`. Caddy's admin defaults to enforcing
+	# the Host header against a loopback allowlist; we add the expected host
+	# here so requests from the api container aren't rejected with 403.
+	#
+	# On the host side, compose only publishes 127.0.0.1:2019 — so this is
+	# still not reachable from the outside LAN.
+	admin 0.0.0.0:2019 {
+		# We trust the brimble-net network (it's a compose-internal bridge).
+		# Node's fetch doesn't send an Origin header, which makes Caddy's
+		# default origin check 403 everything. `origins` accepts the empty
+		# string to permit no-Origin requests — that's what we need here.
+		origins "" localhost 127.0.0.1 caddy api brimble-api-1
+	}
+}
+
+:80 {
+	@api path /api/*
+	handle @api {
+		reverse_proxy api:3000 {
+			flush_interval -1
+		}
+	}
+	handle {
+		reverse_proxy web:80
+	}
+}

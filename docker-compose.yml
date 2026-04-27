@@ -1,0 +1,90 @@
+name: brimble
+
+# Security note: this stack is designed for a reviewer's laptop on localhost.
+# The api container has the host Docker socket mounted, which gives it root
+# on the host. Do NOT expose this compose stack on a public IP without
+# putting a socket proxy (e.g. tecnativa/docker-socket-proxy) in front of
+# the socket and adding auth on the api. See docs/TRADEOFFS.md.
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      # Admin API bound to loopback only. Don't publish 2019 to 0.0.0.0.
+      - "127.0.0.1:2019:2019"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - brimble-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:2019/config/"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # BuildKit daemon Railpack talks to. We use the `docker-container` driver,
+  # which means the api `docker exec`s into this container via the mounted
+  # socket rather than speaking TCP — avoids the Docker-Desktop-on-macOS
+  # nested-network DNS issues where TCP BuildKit stalls on npm install.
+  # Named explicitly so BUILDKIT_HOST can reference it by container name.
+  buildkit:
+    image: moby/buildkit:latest
+    container_name: brimble-buildkit
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - buildkit_cache:/var/lib/buildkit
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: /data/app.db
+      CADDY_ADMIN: http://caddy:2019
+      WORKSPACE_DIR: /data/workspaces
+      LOGS_DIR: /data/logs
+      DEPLOY_NETWORK: brimble-net
+      PORT: "3000"
+      NODE_ENV: production
+      # Railpack needs BuildKit. We use the host Docker daemon's built-in
+      # BuildKit via the mounted socket — no sidecar needed. `docker-container`
+      # driver spins up a buildkit worker as a child of the host daemon.
+      BUILDKIT_HOST: docker-container://brimble-buildkit
+    volumes:
+      # DANGER: grants root-on-host to anything in this container. Required
+      # for Docker-out-of-Docker; flagged in docs/TRADEOFFS.md.
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data:/data
+    networks:
+      - brimble-net
+    depends_on:
+      caddy:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    networks:
+      - brimble-net
+
+networks:
+  brimble-net:
+    name: brimble-net
+
+volumes:
+  caddy_data:
+  caddy_config:
+  buildkit_cache:
