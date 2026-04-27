@@ -42,6 +42,30 @@ What I'll write down when it's done:
 
 Plan: deploy `sample-app/` from this repo (smallest moving part — proves the pipeline). Push it to a fresh public repo on GitHub first, then connect it on Brimble. Aim for the whole thing in 30 minutes; if anything blocks me past that, DM @pipe_dev (per the brief — they explicitly said this doesn't count against me).
 
+### 2026-04-27 — submission day, attempt via `@brimble/cli`
+
+Tried the CLI path first because it's the lowest-friction "is this thing even up" check.
+
+```
+$ npm install -g @brimble/cli  # 418 packages, ~1 min, no errors
+$ brimble --help               # works, shows commands
+$ brimble login -e bickerstethdemilade@gmail.com
+? Authenticate with Github (Y/n)
+```
+
+Hard stop. The CLI hard-codes a GitHub OAuth flow as the only auth path. Tried `-a email` to see if there was a hidden alternate route:
+
+```
+$ brimble login -e ... -a email
+ERROR: Only Github is supported for now
+```
+
+So the CLI cannot authenticate without a browser. There is no env-var token path, no `--token` flag, no `BRIMBLE_TOKEN` documented. Friction note (specific, not polite): a paid CLI with an exclusive GitHub-OAuth login is going to lock out CI runners, sandboxed agents, and anyone trying to script a first-time deploy. A `BRIMBLE_TOKEN` env var (read from the dashboard, like Vercel/Netlify) would be a 30-line patch and unblocks everyone.
+
+**Status of CLI deploy attempt:** blocked at OAuth. The web-flow deploy will be done manually by me at the desk and the live URL pasted in below + in the README.
+
+(Beats 1–8 below to be filled live during the manual web-flow attempt.)
+
 Fill in **time + specifics** for each beat as I go. Empty answers are OK if there genuinely was no friction — but if I find myself writing "all good!" everywhere, I'm being polite, not honest.
 
 ### Pre-deploy (before I open Brimble)

@@ -160,23 +160,22 @@ _[filled in at submission]_
 
 ## Brimble deploy + feedback
 
-**Deployed:** _[live URL — paste after deploying `sample-app/` to Brimble]_
+**Deployed:** _[live URL — paste after the manual web-flow deploy of `sample-app/`]_
 
-_Write the feedback below directly. Specific. Direct. Don't soften._
+CLI-path attempt (2026-04-27, submission day): `npm i -g @brimble/cli` succeeded; `brimble login -e <email>` immediately prompts `Authenticate with Github (Y/n)` and there is no headless / token alternative — `brimble login -a email` errors with `Only Github is supported for now`. So the CLI deploy is blocked behind an interactive browser-OAuth step. Manual web-flow deploy to follow. Full friction log lives in `docs/NOTEBOOK.md`.
 
-The brief said the polite version isn't what they want — they want what I'd say to a teammate. So: the deploy experience was [adjective]. Specifically:
+Specific feedback so far (CLI-only):
 
-- _[friction point 1 — what page, what action, what you expected, what happened. e.g. "On the project-create screen I clicked the GitHub button and got redirected to a blank page for ~3s before the OAuth screen showed."]_
-- _[friction point 2]_
-- _[friction point 3]_
+- The CLI hard-codes GitHub OAuth as the only login path. Anyone running this from a CI box, a sandboxed agent, or a fresh laptop without a browser is stuck. A `BRIMBLE_TOKEN` env var (issued from the dashboard, like Vercel/Netlify/Railway all do) would unblock every scripted first-deploy.
+- `brimble login --help` lists `-a, --auth <auth>` but the only accepted value appears to be the GitHub default; `-a email` errors. Either drop the flag or document the accepted values in `--help`.
+- `npm install -g @brimble/cli` pulled 418 packages and surfaced one `punycode` deprecation warning at runtime. Worth a dependency audit — for a CLI that is the front door to the product, install footprint and warning-spew on first run set the tone.
 
-What I'd change:
+What I'd change (CLI-side, before getting to the web flow):
 
-- _[change 1 — concrete; e.g. "the build-log pane buffered for ~6s at the start of every build before any output showed; even a 'starting builder…' system line would tell me the request landed."]_
-- _[change 2]_
-- _[anything else]_
+- Ship a `BRIMBLE_TOKEN` headless auth path. One env var, gated by a dashboard-issued token, would make the CLI usable from CI on day 1.
+- Make `brimble cook` print a one-line "Resolving project name…" / "Uploading…" status before the build starts so users know the request landed.
 
-What worked: _[1–2 lines on what was good — be specific. Honesty cuts both ways.]_
+What worked: install, `--help` discovery, and command structure (`cook` / `logs` / `delete` / `env`) are all clear and match what someone coming from `vercel` / `netlify` would expect. The verb choice is good — `cook` is memorable.
 
-Full friction log written live during the deploy is in `docs/NOTEBOOK.md` under "Brimble deploy — friction log". This summary distills it.
+Web-flow feedback to be appended after the manual deploy. Full friction log: `docs/NOTEBOOK.md` → "Brimble deploy — friction log".
 
